@@ -1,0 +1,196 @@
+***************** V2 LEARNINGS **************************
+========================================================
+NEW LEARNING-2 : === FastAPI & Uvicorn  ===
+========================================================
+Internet Request
+      ↓
+  [ Uvicorn ]   ← listens on a port, speaks HTTP/ASGI
+      ↓
+  [ FastAPI ]   ← your routes, logic, validation, response
+      ↓
+  [ Uvicorn ]   ← sends the response back
+      ↓
+Internet Response
+
+-------------------------------------------------------------------------------------
+	       |  What it is	                           | Analogy
+-------------------------------------------------------------------------------------
+FastAPIWeb | framework — defines routes & logic        | Chef + Menu
+-------------------------------------------------------------------------------------
+Uvicorn    | ASGI server — handles network connections | Front door + Waitstaff
+-------------------------------------------------------------------------------------
+FastAPI needs Uvicorn to actually serve the app to the world. 
+FastAPI alone is just a Python object sitting in memory — Uvicorn is what makes it reachable over the network.
+
+ASGI = Asynchronous Server Gateway Interface
+Think of it like a multi-lane highway with smart traffic management. 
+While Request 1 is waiting for a database response, Request 2 and 3 are already being handled.
+
+ASGI server = a network listener that handles requests asynchronously and passes them to your Python app using the ASGI standard protocol.
+--------------------------------------------------------------------------------------------------------
+
+========================================================
+NEW LEARNING-1 : === REDIRECT ENDPOINT STRUCTURE ===
+========================================================
+Redirect endpoint
+Request
+GET /python
+
+The service performs:
+
+short_url = service.resolve_url("python")
+
+This:
+
+Finds the URL.
+Rejects a missing URL.
+Rejects an expired URL.
+Increments the redirect count.
+Returns the active mapping.
+
+The HTTP boundary then returns:
+
+HTTP/1.1 307 Temporary Redirect
+Location: https://example.com/articles/python
+
+There is usually no JSON response here. The important output is the Location header.
+
+FastAPI’s RedirectResponse defaults to status 307. HTTP 307 Temporary Redirect tells the client to follow the new location while preserving the original request method.
+
+Why not 301 or 308?
+
+Those communicate a permanent redirect.
+
+A permanent redirect can be aggressively cached by clients or intermediaries. That becomes inconvenient when:
+
+The destination changes.
+The short URL is disabled.
+Analytics must record each visit.
+Expiration rules change.
+
+For our application, we choose a temporary redirect.
+
+Possible failures
+Situation	Status
+Short code does not exist	404 Not Found
+Short URL has expired	410 Gone
+
+We use 410 Gone for expiration because the resource previously existed but is no longer available for redirecting. HTTP defines both 404 Not Found and 410 Gone as distinct client-error statuses.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+**************** V1 LEARNINGS *************************
+========================================================
+NEW LEARNING-1 : === DEPENDENCY INJECTION ===
+========================================================
+
+WHAT IT MEANS:
+  Don't let a class create its own dependencies.
+  Instead, pass them in from outside (via __init__).
+
+WITHOUT DI (bad):
+  class ShortUrlService:
+      def __init__(self):
+          self.repository = ShortUrlRepository()  # hardwired, untestable
+
+WITH DI (good):
+  class ShortUrlService:
+      def __init__(self, repository: ShortUrlRepository):
+          self.repository = repository             # flexible, testable
+
+WHERE TO USE IT IN THIS PROJECT:
+  - ShortUrlService.__init__ must accept a ShortUrlRepository as a parameter.
+  - Tests create their own fresh repository and inject it:
+        repo = ShortUrlRepository()
+        service = ShortUrlService(repo)
+  - This is why every test in test_repository.py builds its own
+    ShortUrlRepository() at the top — each test owns and controls its dependency.
+
+WHY IT MATTERS:
+  - Testable: swap real repo for a fake/mock in tests
+  - Flexible: swap storage (in-memory → database) without changing service code
+  - Loosely coupled: service doesn't care HOW the repo works, only WHAT it can do
+
+ONE-LINE RULE:
+  "Don't build your tools yourself — receive them from whoever calls you."
+
+--------------------------------------------------------------------------------------------------------
+
+========================================================
+NEW LEARNING-2 === DEPENDENCY INJECTION WITH PROTOCOL ===
+========================================================
+
+WHAT IT IS:
+  Using Protocol defines a formal contract (interface) that any repository must satisfy.
+  The service depends on the contract, not any specific class.
+
+DEFINE THE CONTRACT:
+  from typing import Protocol
+
+  class ShortUrlRepositoryProtocol(Protocol):
+      def save(self, short_url: ShortUrl) -> ShortUrl: ...
+      def get(self, short_code: str) -> ShortUrl | None: ...
+      def delete(self, short_code: str) -> bool: ...
+
+INJECT ANY IMPLEMENTATION:
+  class ShortUrlService:
+      def __init__(self, repository: ShortUrlRepositoryProtocol) -> None:
+          self._repository = repository
+
+  # All of these satisfy the Protocol automatically (no inheritance needed):
+  ShortUrlService(ShortUrlRepository())          # in-memory
+  ShortUrlService(PostgresShortUrlRepository())  # real database
+  ShortUrlService(MockShortUrlRepository())      # for tests
+
+WHY IT IS BETTER THAN BASIC DI:
+  - Basic DI: service is still tied to the concrete class in the type hint
+  - Protocol DI: service only knows the contract, not the implementation
+  - Type checker (mypy/pyright) validates that any injected class matches the contract
+  - Swap storage (in-memory → PostgreSQL) without changing service code at all
+
+ANALOGY:
+  Protocol = USB port (defines the shape it accepts)
+  Repositories = USB devices (keyboard, mouse, drive) — anything that fits works
+
+WHEN TO USE IN THIS PROJECT:
+  - Basic DI is fine for now (one in-memory repo)
+  - Introduce Protocol when: switching to a real DB, or wanting mocks
+    to be formally type-checked
+
+--------------------------------------------------------------------------------------------------------
+
+=============================================================================
+NEW LEARNING-3: SERVICE RETURN TYPE: Result Object vs Domain Object
+=============================================================================
+
+Context: What should resolve_url() return?
+
+--- Production-Grade ---
+Return a dedicated DTO (Data Transfer Object):
+
+    @dataclass(frozen=True)
+    class RedirectResult:
+        destination_url: str
+        short_code: str
+        redirect_count: int
+
+Why:
+- Caller only gets what it needs (encapsulation)
+- Immutable — frozen=True prevents accidental mutation
+- Decoupled from domain model — ShortUrl can change without breaking callers
+
+--- Interview-Optimised ---
+Return the domain object directly:
+
+    def resolve_url(self, short_code: str) -> ShortUrl:
+
+Why it's acceptable:
+- Simpler — no extra class needed
+- ShortUrl already has everything the API layer needs
+- Acknowledge the DTO tradeoff verbally — that's enough
+
+--- Key Rule ---
+Production: transport layer (what you return) should be
+            independent from domain layer (your model).
+Interview:  knowing the distinction matters more than implementing it.
+
+--------------------------------------------------------------------------------------------------------

@@ -1,0 +1,188 @@
+ === PROPOSED ARCHITECTURE ===
+========================================================
+HTTP request
+    ↓
+FastAPI router
+    ↓
+Pydantic request validation
+    ↓
+ShortUrlService
+    ↓
+ShortUrlRepository
+    ↓
+In-memory dictionary
+
+--------------------------------------------------------------------------------------------------------
+ === CURRENT SCOPE ===
+========================================================
+HTTP request
+HTTP
+FastAPI
+Pydantic
+Dependency injection
+Exception mapping
+API testing
+
+The next separate phase will be persistence:
+
+Phase 3 — SQLAlchemy and SQLite/PostgreSQL
+
+That phase will cover:
+
+ORM models
+Database sessions
+Transactions
+Unique constraints
+Migrations
+Atomic redirect increments
+Repository interface
+In-memory and database implementations
+Integration tests
+Data surviving restarts
+
+Recommended execution sequence
+
+We will follow this order:
+1. HTTP fundamentals and API contract
+2. FastAPI app and health endpoint
+3. Request and response schemas
+4. Dependency injection
+5. Create endpoint
+6. Details endpoint
+7. Redirect endpoint
+8. List and delete endpoints
+9. Global exception handling
+10. API testing
+11. Manual execution
+12. Final code review and improvements
+
+--------------------------------------------------------------------------------------------------------
+
+ === Final TinyURL API contract ===
+========================================================================
+| Method   | Endpoint             | Purpose                  | Success |
+| -------- | -------------------- | ------------------------ | ------: |
+| `GET`    | `/health`            | Check application health |   `200` |
+| `POST`   | `/urls`              | Create a short URL       |   `201` |
+| `GET`    | `/urls`              | List stored URLs         |   `200` |
+| `GET`    | `/urls/{short_code}` | View URL metadata        |   `200` |
+| `DELETE` | `/urls/{short_code}` | Delete a short URL       |   `204` |
+| `GET`    | `/{short_code}`      | Redirect to destination  |   `307` |
+
+--------------------------------------------------------------------------------------------------------
+
+=== Error Codes ===
+========================================================================
+
+DuplicateShortCodeError
+    ↓
+409 Conflict
+
+ShortCodeNotFoundError
+    ↓
+404 Not Found
+
+ShortUrlExpiredError
+    ↓
+410 Gone
+
+--------------------------------------------------------------------------------------------------------
+
+The request flow becomes:
+========================================================================
+
+JSON request
+    ↓
+Pydantic request model
+    ↓
+Validated Python values
+    ↓
+ShortUrlService
+    ↓
+ShortUrl domain model
+    ↓
+Pydantic response model
+    ↓
+JSON response
+
+--------------------------------------------------------------------------------------------------------
+Node.js vs FastAPI — Request Flow
+========================================================================
+
+
+NODE.JS                          FASTAPI (this project)
+─────────────────────────────    ──────────────────────────────────────
+server.js                        uvicorn  (external process, not your code)
+    ↓                                ↓
+app.js                           main.py  (creates app, mounts router, registers handlers)
+    ↓                                ↓
+router.js                        routers/urls.py  (APIRouter with prefix="/urls")
+    ↓                                ↓
+middleware.js                    FastAPI internals  (JSON parsing, validation, DI resolution)
+    ↓                                ↓
+route.js + controller.js         routers/urls.py → create_short_url()  (these are merged in FastAPI)
+    ↓                                ↓
+service.js                       service.py → ShortUrlService.create_url()
+    ↓                                ↓
+repository.js                    repository.py → ShortUrlRepository.save()
+
+--------------------------------------------------------------------------------------------------------
+Detailed flow for POST /urls
+========================================================================
+
+1. uvicorn
+   Receives the raw TCP request and hands it to FastAPI
+
+2. main.py
+   FastAPI matches the path/method → finds create_short_url() in urls.router
+
+3. FastAPI internals (automatic)
+   ├── Parses JSON body → validates against CreateShortUrlRequest (schemas.py)
+   ├── Resolves Depends(get_short_url_service) → returns the singleton _service (dependencies.py)
+   └── Injects: payload, request, response, service into the route function
+
+4. routers/urls.py → create_short_url()
+   ├── Calls service.create_url(destination_url, custom_code, expires_in_seconds)
+   ├── Sets response.headers["Location"]
+   └── Calls to_short_url_response() → maps ShortUrl model → ShortUrlResponse (mappers.py)
+
+5. service.py → ShortUrlService.create_url()
+   ├── Generates/validates short code
+   ├── Builds ShortUrl model (models.py)
+   └── Calls repository.save(short_url)
+
+6. repository.py → ShortUrlRepository.save()
+   └── Stores in _urls dict, returns ShortUrl
+
+7. Back up the chain
+   service returns ShortUrl → route returns ShortUrlResponse → FastAPI serializes to JSON → uvicorn sends HTTP 201
+--------------------------------------------------------------------------------------------------------
+The key differences from Node.js
+========================================================================
+
+------------------------------------------------------------------------------
+Node.js	                                 |      FastAPI
+------------------------------------------------------------------------------
+server.js is your code                   | uvicorn is external — not your code
+Route + Controller are separate files    | Merged — the route function IS the controller
+Middleware is explicit in the chain      | FastAPI handles parsing/validation/DI automatically before your function runs
+Error middleware at the bottom of app.js | exception_handlers.py registered once in main.py
+------------------------------------------------------------------------------
+
+The biggest conceptual shift is that FastAPI collapses the middleware + controller step into the route function itself — by the time your create_short_url() runs, 
+the request is already parsed, validated, and dependencies injected.
+--------------------------------------------------------------------------------------------------------
+Categories of failures
+========================================================================
+
+Expected domain failure
+    Duplicate code, missing URL, expired URL
+    → Specific 4xx or 503 response
+
+Invalid HTTP request
+    Invalid URL, malformed path, missing field
+    → 422 response
+
+Unexpected application error
+    Programming bug, unavailable dependency, unknown failure
+    → Generic 500 response
