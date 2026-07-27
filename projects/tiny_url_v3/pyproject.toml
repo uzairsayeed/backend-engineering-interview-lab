@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "tiny-url-api"
+version = "3.0.0"
+description = "A persistent TinyURL HTTP API built with FastAPI and SQLAlchemy."
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "fastapi[standard]>=0.121,<1.0",
+    "pydantic-settings",
+    "sqlalchemy>=2.0,<2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "alembic>=1.18,<1.19",
+    "httpx",
+    "pytest",
+    "ruff",
+]
+
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+]
+
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
