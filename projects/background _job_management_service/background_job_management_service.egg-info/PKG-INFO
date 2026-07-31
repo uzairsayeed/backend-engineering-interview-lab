@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: background-job-management-service
+Version: 0.1.0
+Requires-Python: <3.12,>=3.11
+Requires-Dist: alembic
+Requires-Dist: fastapi
+Requires-Dist: pydantic
+Requires-Dist: sqlalchemy
+Requires-Dist: uvicorn
+Provides-Extra: test
+Requires-Dist: httpx; extra == "test"
+Requires-Dist: pytest; extra == "test"

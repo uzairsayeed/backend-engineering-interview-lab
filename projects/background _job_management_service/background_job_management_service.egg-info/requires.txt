@@ -1,0 +1,9 @@
+alembic
+fastapi
+pydantic
+sqlalchemy
+uvicorn
+
+[test]
+httpx
+pytest
