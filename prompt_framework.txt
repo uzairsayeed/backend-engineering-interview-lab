@@ -27,7 +27,7 @@ IMPORTANT CONSTRAINTS:
 12. Repositories may flush but should not own the outer transaction commit.
 13. Do not add authentication, docker, queues, caching or distributed infrastructure unless explicitly required.
 
-
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 PROMPT-2:
 Analyse the following requirements
 
@@ -47,6 +47,7 @@ Produce:
 
 Keep the design interview-optimised rather than production-complete
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 PROMPT-3:
 Using the CONFIRMED requirements and assumptions, create a chronological implementation plan.
 
@@ -72,25 +73,4 @@ Produce:
 Do not code yet
 Do not incliude optional files unless Using the confirmed requirements and assumptions below, create a chronological implementation plan.
 
-<PASTE CONFIRMED REQUIREMENTS AND ASSUMPTIONS>
-
-The solution should use:
-- Python 3.11
-- FastAPI
-- SQLAlchemy 2.x
-- SQLite
-- Pydantic
-- Alembic
-- Pytest
-- At most two integration tests
-
-Produce:
-1. The exact order in which files should be created.
-2. The responsibility of each file.
-3. Dependencies between the files.
-4. Vertical checkpoints where the application should be runnable.
-5. A 150-minute implementation time budget.
-6. A fallback plan if I start running out of time.
-
-Do not write code yet.
-Do not include optional files unless the requirements justify them.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
