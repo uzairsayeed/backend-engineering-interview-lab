@@ -43,7 +43,9 @@ Produce:
 5. The minimum viable scope to complete in 150 mins.
 6. Proposed API contract endpoints, status code, error codes, req and response objects.
 7. Core entitites (DB tables) with correct use of indexes, unique constraints, foreign keys and state transitions.
+8. The three highest-risk implementation areas.
 
+Keep the design interview-optimised rather than production-complete
 
 PROMPT-3:
 Using the CONFIRMED requirements and assumptions, create a chronological implementation plan.
