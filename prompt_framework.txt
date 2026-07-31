@@ -1,0 +1,96 @@
+PROMPT-1:
+
+You are assisting me ina 3 hour backend coding interview.
+
+We'll be building "<< PROJECT >>" using the following:
+1. Python 3.11
+2. FastAPI
+3. SQLAlchemy 2.x
+4. SQLite
+5. ALembic
+6. Pytest
+7. Pydantic
+
+IMPORTANT CONSTRAINTS:
+1. Optimise for a clean, complete, working and explainable solution.
+2. Do not overengineer.
+3. Do not generate the entire project at once.
+4. Work in small stages.
+5. Before each stage, list the files to create or modify.
+6. Do not modify unrelated files.
+7. After generating code, explain and document all the important design decisions.
+8. Flag assumptions clearly.
+9. Prefer simple, readable code that I can explain during code review.
+
+10. Keep domain, service, repository and HTTP responsibilities seperated, but AVOID unnecessary abstractions.
+11. Use one SQLAlchemy session per request.
+12. Repositories may flush but should not own the outer transaction commit.
+13. Do not add authentication, docker, queues, caching or distributed infrastructure unless explicitly required.
+
+
+PROMPT-2:
+Analyse the following requirements
+
+<< REQURIEMENTS >>
+
+Do not code yet
+
+Produce:
+1. Functional requirements.
+2. Non functional requirements explicitly stated.
+3. Important ambiguities.
+4. Assumptions that I can reasonably make.
+5. The minimum viable scope to complete in 150 mins.
+6. Proposed API contract endpoints, status code, error codes, req and response objects.
+7. Core entitites (DB tables) with correct use of indexes, unique constraints, foreign keys and state transitions.
+8. The three highest-risk implementation areas.
+
+Keep the design interview-optimised rather than production-complete
+
+PROMPT-3:
+Using the CONFIRMED requirements and assumptions, create a chronological implementation plan.
+
+<< PASTE THE REQS and ASSUMPTIONS >>
+
+The solution should use:
+1. Python 3.11
+2. FastAPI
+3. SQLALchemy 2.x
+4. Alembic
+5. SQLIte
+6. Pytest
+7. Pydantic
+
+Produce:
+1. The exact order in which files should be created
+2. The purpose and responsibility of each file.
+3. Dependencies between the files.
+4. Vertical checkpoint where the application should be runnable.
+5. A 150-mins implementation time budget.
+6. A fallback plan if I ran out of time
+
+Do not code yet
+Do not incliude optional files unless Using the confirmed requirements and assumptions below, create a chronological implementation plan.
+
+<PASTE CONFIRMED REQUIREMENTS AND ASSUMPTIONS>
+
+The solution should use:
+- Python 3.11
+- FastAPI
+- SQLAlchemy 2.x
+- SQLite
+- Pydantic
+- Alembic
+- Pytest
+- At most two integration tests
+
+Produce:
+1. The exact order in which files should be created.
+2. The responsibility of each file.
+3. Dependencies between the files.
+4. Vertical checkpoints where the application should be runnable.
+5. A 150-minute implementation time budget.
+6. A fallback plan if I start running out of time.
+
+Do not write code yet.
+Do not include optional files unless the requirements justify them.
